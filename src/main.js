@@ -219,6 +219,7 @@ async function fetchPresence() {
 }
 setInterval(fetchPresence, 6000);
 
-// 🧠 Typing-Triggered Ghost
+// 👁 Typing-based Ghost Prompts
 initGhostBot(sendGhostMessage);
+
 
