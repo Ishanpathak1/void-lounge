@@ -3,7 +3,7 @@ import { initGhostBot } from './ghostBot.js';
 import { createUserIdentity } from './identity.js';
 
 // Initialize GUN
-const gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+const gun = Gun(['https://b410c6b5-8456-4d69-b6d2-bcb630a461b3-00-1wpchv1m8ax65.riker.replit.dev/']);
 const chat = gun.get('void-lounge');
 const users = gun.get('void-lounge-users');
 
