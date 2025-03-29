@@ -34,13 +34,12 @@ const portals = {
   }
 };
 
-// 🚀 Send Message
+// 📤 Message Send
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = input.value.trim();
   if (!text) return;
 
-  // Portals
   const portalKey = text.toLowerCase();
   if (portals[portalKey]) {
     portalAttempts[portalKey] = (portalAttempts[portalKey] || 0) + 1;
@@ -56,7 +55,8 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  // Send to backend
+  console.log("[SEND] Sending message:", text);
+
   await fetch('/api/send-message', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -87,22 +87,33 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
-// 🎯 Render messages on load
+// 🧠 Load Recent Messages
 async function fetchMessages() {
-  const res = await fetch('/api/get-message');
-  const messages = await res.json();
-  messages.forEach(({ text }) => {
-    addToHistory(text);
-    renderMessage(text);
-  });
+  console.log("[FETCH] Fetching messages from backend...");
+  try {
+    const res = await fetch('/api/get-message');
+    const messages = await res.json();
+    console.log("[FETCH] Messages received:", messages);
+
+    messages.forEach(({ text }) => {
+      console.log("[RENDER] Message:", text);
+      addToHistory(text);
+      renderMessage(text);
+    });
+  } catch (err) {
+    console.error("[ERROR] Failed to fetch messages:", err);
+  }
 }
 fetchMessages();
 
-// 👁 Display Message
+// 💬 Display Message
 function renderMessage(text, options = {}) {
+  console.log("[DISPLAY] renderMessage triggered:", { text, options });
+
   const msg = document.createElement('div');
   msg.classList.add('message');
   if (Math.random() < 0.3) msg.classList.add('warp');
+
   msg.textContent = options.ghost ? `👁 ${text}` : text;
 
   const y = window.innerHeight * 0.4 + Math.random() * window.innerHeight * 0.2;
@@ -159,9 +170,7 @@ function isTriggerMessage(text) {
   return patterns.some((regex) => regex.test(text));
 }
 
-initGhostBot(sendGhostMessage);
-
-// 👻 Passive AI Ghost
+// 🧠 Passive Ghost
 setInterval(async () => {
   if (messageHistory.length < 4) return;
   try {
@@ -177,12 +186,13 @@ setInterval(async () => {
   }
 }, 150000);
 
-// 📊 Presence Dashboard
+// 📊 Dashboard Toggle
 toggle.addEventListener('click', () => {
   showDashboard = !showDashboard;
   dashboard.classList.toggle('hidden', !showDashboard);
 });
 
+// 🧿 Presence Ping
 async function updatePresence() {
   await fetch('/api/presence', {
     method: 'POST',
@@ -192,6 +202,7 @@ async function updatePresence() {
 }
 setInterval(updatePresence, 5000);
 
+// 🧿 Presence Fetch
 async function fetchPresence() {
   const res = await fetch('/api/presence');
   const users = await res.json();
@@ -207,3 +218,7 @@ async function fetchPresence() {
     .join('<br>') || 'No one... yet.';
 }
 setInterval(fetchPresence, 6000);
+
+// 🧠 Typing-Triggered Ghost
+initGhostBot(sendGhostMessage);
+
