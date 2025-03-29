@@ -92,7 +92,7 @@ async function fetchMessages() {
   console.log("[FETCH] Fetching messages from backend...");
   try {
     const res = await fetch('/api/get-message');
-    const messages = await res.json();
+    const { messages } = await res.json();
     console.log("[FETCH] Messages received:", messages);
 
     messages.forEach(({ text }) => {
