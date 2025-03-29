@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Void Lounge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <canvas id="particles"></canvas>
+  <div id="dashboard-toggle">👁</div>
+  <div id="user-dashboard" class="hidden"></div>
+
+
+  <div id="message-container"></div>
+
+  <form id="chat-form">
+    <input type="text" id="message-input" placeholder="drop a thought..." autocomplete="off" />
+  </form>
+
+  <audio id="ambience" autoplay loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/02/23/audio_16728c7a56.mp3?filename=ambient-105276.mp3" type="audio/mpeg" />
+  </audio>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
