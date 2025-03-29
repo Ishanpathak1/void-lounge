@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Void Lounge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0a1a" />
+  <link rel="stylesheet" href="/styles.css" />
+  
+</head>
+<body>
+  <!-- Background Particles -->
+  <canvas id="particles"></canvas>
+
+  <!-- Floating Dashboard Icon -->
+  <div id="dashboard-toggle">👁</div>
+  <div id="user-dashboard" class="hidden"></div>
+
+  <!-- Chat Messages -->
+  <div id="message-container"></div>
+
+  <!-- Chat Input Form -->
+  <form id="chat-form" autocomplete="off">
+    <input
+      type="text"
+      id="message-input"
+      placeholder="drop a thought..."
+      autocomplete="off"
+    />
+  </form>
+
+  <!-- Background Ambience Audio -->
+  <audio id="ambience" autoplay loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/02/23/audio_16728c7a56.mp3?filename=ambient-105276.mp3" type="audio/mpeg" />
+  </audio>
+
+  <!-- App Logic -->
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
