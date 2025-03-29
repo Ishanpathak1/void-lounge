@@ -1,5 +1,16 @@
 {
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "http-server ./"
+  },
   "dependencies": {
-    "gun": "^0.2020.1240"
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "node-fetch": "^2.6.1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }

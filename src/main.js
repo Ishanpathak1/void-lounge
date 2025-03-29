@@ -1,17 +1,9 @@
-import Gun from 'gun';
 import { initGhostBot } from './ghostBot.js';
 import { createUserIdentity } from './identity.js';
 
-// Initialize GUN
-const gun = Gun(['https://b410c6b5-8456-4d69-b6d2-bcb630a461b3-00-1wpchv1m8ax65.riker.replit.dev/']);
-const chat = gun.get('void-lounge');
-const users = gun.get('void-lounge-users');
-
-// 🎮 User Identity & Score
-const { id: myId, emoji, score: myScoreStart } = createUserIdentity(gun);
+const { id: myId, emoji, score: myScoreStart } = createUserIdentity();
 let myScore = myScoreStart;
 
-// DOM Elements
 const input = document.getElementById('message-input');
 const form = document.getElementById('chat-form');
 const container = document.getElementById('message-container');
@@ -21,29 +13,12 @@ const toggle = document.getElementById('dashboard-toggle');
 let chaosMode = false;
 let theme = 'default';
 let currentRoom = 'main';
+let showDashboard = false;
+
 const enteredRooms = new Set();
 const portalAttempts = {};
 const messageHistory = [];
 const MAX_HISTORY = 10;
-const MAX_AGE_MS = 2 * 60 * 1000; // 2 minutes
-let showDashboard = false;
-
-// 🧿 Push presence
-setInterval(() => {
-  users.get(myId).put({
-    emoji,
-    score: myScore,
-    lastPing: Date.now()
-  });
-}, 4000);
-
-function addToHistory(text) {
-  if (text.startsWith("👁")) return;
-  messageHistory.push(text);
-  if (messageHistory.length > MAX_HISTORY) {
-    messageHistory.shift();
-  }
-}
 
 // 🌀 Secret Portals
 const portals = {
@@ -59,39 +34,41 @@ const portals = {
   }
 };
 
-// 📤 Message Send
+// 🚀 Send Message
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const text = input.value.trim().toLowerCase();
+  const text = input.value.trim();
   if (!text) return;
 
-  if (portals[text]) {
-    if (enteredRooms.has(text)) {
-      input.value = '';
-      return;
-    }
-    portalAttempts[text] = (portalAttempts[text] || 0) + 1;
-
-    if (portalAttempts[text] >= 2) {
-      enterRoom(text);
-      sendGhostMessage(`☁ You’ve entered: ${portals[text].name}`);
-      enteredRooms.add(text);
+  // Portals
+  const portalKey = text.toLowerCase();
+  if (portals[portalKey]) {
+    portalAttempts[portalKey] = (portalAttempts[portalKey] || 0) + 1;
+    if (portalAttempts[portalKey] >= 2 && !enteredRooms.has(portalKey)) {
+      enterRoom(portalKey);
+      enteredRooms.add(portalKey);
+      sendGhostMessage(`☁ You’ve entered: ${portals[portalKey].name}`);
       myScore += 1;
     } else {
       sendGhostMessage("The room didn’t open. Try again… if you dare.");
     }
-
     input.value = '';
     return;
   }
 
-  chat.set({ text, timestamp: Date.now() });
+  // Send to backend
+  await fetch('/api/send-message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, timestamp: Date.now() })
+  });
+
   input.value = '';
   myScore += 1;
 
   if (isTriggerMessage(text)) {
     try {
-      const res = await fetch('http://localhost:3001/api/ghost-reactive', {
+      const res = await fetch('/api/ghost-reactive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -105,44 +82,34 @@ form.addEventListener('submit', async (e) => {
         myScore += 2;
       }
     } catch (err) {
-      console.warn("Ghost reactive whisper failed:", err);
+      console.warn('Reactive ghost failed:', err);
     }
   }
 });
 
-// 🧼 GUN Replay Filter
-chat.map().on((data) => {
-  if (!data || !data.text || !data.timestamp) return;
-  const now = Date.now();
-  if (now - data.timestamp > MAX_AGE_MS) return;
-  addToHistory(data.text);
-  renderMessage(data.text);
-});
-
-// 🚪 Enter Portal Room
-function enterRoom(key) {
-  const portal = portals[key];
-  if (!portal) return;
-  container.className = '';
-  document.body.className = '';
-  document.body.style.background = portal.bg;
-  container.classList.add(portal.class);
-  currentRoom = key;
+// 🎯 Render messages on load
+async function fetchMessages() {
+  const res = await fetch('/api/get-message');
+  const messages = await res.json();
+  messages.forEach(({ text }) => {
+    addToHistory(text);
+    renderMessage(text);
+  });
 }
+fetchMessages();
 
-// 💬 Render Message
+// 👁 Display Message
 function renderMessage(text, options = {}) {
   const msg = document.createElement('div');
   msg.classList.add('message');
   if (Math.random() < 0.3) msg.classList.add('warp');
-
   msg.textContent = options.ghost ? `👁 ${text}` : text;
+
   const y = window.innerHeight * 0.4 + Math.random() * window.innerHeight * 0.2;
   msg.style.top = `${y}px`;
-
-  const xOffset = Math.floor(Math.random() * 300) - 150;
   msg.style.left = '50%';
 
+  const xOffset = Math.floor(Math.random() * 300) - 150;
   const transforms = [`translateX(${xOffset}px)`];
   if (chaosMode || options.ghost) {
     const hue = options.ghost ? 220 : Math.floor(Math.random() * 360);
@@ -163,6 +130,24 @@ function sendGhostMessage(text) {
   renderMessage(text, { ghost: true });
 }
 
+function enterRoom(key) {
+  const portal = portals[key];
+  if (!portal) return;
+  container.className = '';
+  document.body.className = '';
+  document.body.style.background = portal.bg;
+  container.classList.add(portal.class);
+  currentRoom = key;
+}
+
+function addToHistory(text) {
+  if (text.startsWith("👁")) return;
+  messageHistory.push(text);
+  if (messageHistory.length > MAX_HISTORY) {
+    messageHistory.shift();
+  }
+}
+
 function isTriggerMessage(text) {
   const patterns = [
     /am i (alone|being watched|real)/i,
@@ -176,11 +161,11 @@ function isTriggerMessage(text) {
 
 initGhostBot(sendGhostMessage);
 
-// 🧠 Passive AI Ghost
+// 👻 Passive AI Ghost
 setInterval(async () => {
   if (messageHistory.length < 4) return;
   try {
-    const res = await fetch('http://localhost:3001/api/ghost-passive', {
+    const res = await fetch('/api/ghost-passive', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: messageHistory })
@@ -188,39 +173,37 @@ setInterval(async () => {
     const result = await res.json();
     if (result?.whisper) sendGhostMessage(result.whisper);
   } catch (err) {
-    console.warn("Ghost passive whisper failed:", err);
+    console.warn('Passive ghost failed:', err);
   }
 }, 150000);
 
-// 👁 Floating Presence Dashboard
-if (dashboard && toggle) {
-  toggle.addEventListener('click', () => {
-    showDashboard = !showDashboard;
-    dashboard.classList.toggle('hidden', !showDashboard);
-  });
+// 📊 Presence Dashboard
+toggle.addEventListener('click', () => {
+  showDashboard = !showDashboard;
+  dashboard.classList.toggle('hidden', !showDashboard);
+});
 
-  const allUsers = {};
-
-  function updateDashboard(data) {
-    if (!showDashboard) return;
-    const now = Date.now();
-    const usersList = [];
-
-    data.forEach(({ emoji, score, lastPing }) => {
-      if (!emoji || !lastPing || now - lastPing > 10000) return;
-      usersList.push({ emoji, score });
-    });
-
-    usersList.sort((a, b) => b.score - a.score);
-
-    dashboard.innerHTML = usersList
-      .map(u => `${u.emoji} — ${u.score} pts`)
-      .join('<br>') || 'No one... yet.';
-  }
-
-  users.map().on((data, key) => {
-    if (!data || !data.emoji || !data.lastPing) return;
-    allUsers[key] = { ...data, id: key };
-    updateDashboard(Object.values(allUsers));
+async function updatePresence() {
+  await fetch('/api/presence', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: myId, emoji, score: myScore })
   });
 }
+setInterval(updatePresence, 5000);
+
+async function fetchPresence() {
+  const res = await fetch('/api/presence');
+  const users = await res.json();
+  if (!showDashboard) return;
+
+  const now = Date.now();
+  const activeUsers = users
+    .filter(u => now - u.lastPing < 10000)
+    .sort((a, b) => b.score - a.score);
+
+  dashboard.innerHTML = activeUsers
+    .map(u => `${u.emoji} — ${u.score} pts`)
+    .join('<br>') || 'No one... yet.';
+}
+setInterval(fetchPresence, 6000);
