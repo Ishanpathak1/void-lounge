@@ -1,45 +1,44 @@
-import { kv } from '@vercel/kv';
-
 export default async function handler(req, res) {
-  const now = Date.now();
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
 
-  if (req.method === 'PUT') {
+  if (req.method === 'POST') {
     const { id, emoji, score } = req.body;
-    if (!id || !emoji) return res.status(400).json({ error: 'Missing fields' });
 
-    await kv.hset(`presence:${id}`, {
+    const data = {
       emoji,
       score,
-      lastPing: now,
+      lastPing: Date.now()
+    };
+
+    const save = await fetch(`${url}/set/presence-${id}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
     });
 
-    await kv.expire(`presence:${id}`, 15); // auto-expire in 15 seconds
-
-    return res.status(200).json({ success: true });
+    const result = await save.json();
+    return res.status(200).json({ success: true, result });
   }
 
-  if (req.method === 'GET') {
-    const keys = await kv.keys('presence:*');
-    const users = [];
+  // GET active users
+  const keysRes = await fetch(`${url}/keys?prefix=presence-`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
 
-    for (const key of keys) {
-      const data = await kv.hgetall(key);
-      if (!data || !data.lastPing) continue;
+  const keys = await keysRes.json();
+  const now = Date.now();
+  const fetches = keys.result.map((key) =>
+    fetch(`${url}/get/${key}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => res.json())
+  );
 
-      const age = now - parseInt(data.lastPing);
-      if (age <= 10000) {
-        users.push({
-          emoji: data.emoji,
-          score: parseInt(data.score || 0),
-          lastPing: parseInt(data.lastPing),
-        });
-      }
-    }
-
-    users.sort((a, b) => b.score - a.score);
-    return res.status(200).json({ users });
-  }
-
-  res.setHeader('Allow', ['GET', 'PUT']);
-  return res.status(405).end(`Method ${req.method} Not Allowed`);
+  const values = await Promise.all(fetches);
+  const users = values.map(v => v.result).filter(Boolean);
+  res.status(200).json(users);
 }
+
