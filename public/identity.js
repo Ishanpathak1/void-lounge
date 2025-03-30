@@ -1,15 +1,16 @@
-const EMOJIS = ['🧿', '🕸️', '🌑', '🌕', '🌀', '🩸', '🫥', '👁', '🫧', '🌫️'];
+// public/identity.js
 
-function pickRandomEmoji() {
-  return EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+const EMOJIS = ['👁', '🌑', '👻', '🌀', '🕸', '☁️', '🧠', '🧿', '🫧', '🌫️', '🔮'];
+
+export function createUserIdentity() {
+  let identity = JSON.parse(localStorage.getItem('void-identity') || 'null');
+
+  if (!identity) {
+    const id = crypto.randomUUID();
+    const emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+    identity = { id, emoji, score: 0 };
+    localStorage.setItem('void-identity', JSON.stringify(identity));
+  }
+
+  return identity;
 }
-
-function createUserIdentity(gun) {
-  const myId = gun._.opt.pid || `anon-${Date.now()}`;
-  const emoji = pickRandomEmoji();
-  const score = 0;
-
-  return { id: myId, emoji, score };
-}
-
-export { createUserIdentity };
