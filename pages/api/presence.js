@@ -1,44 +1,53 @@
+// pages/api/presence.js
+
 export default async function handler(req, res) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const { method } = req;
 
-  if (req.method === 'POST') {
+  const headers = {
+    Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+    'Content-Type': 'application/json',
+  };
+
+  if (method === 'POST') {
     const { id, emoji, score } = req.body;
+    if (!id || !emoji) {
+      return res.status(400).json({ error: 'Missing id or emoji' });
+    }
 
-    const data = {
+    const payload = {
       emoji,
       score,
       lastPing: Date.now()
     };
 
-    const save = await fetch(`${url}/set/presence-${id}`, {
+    const result = await fetch(`${process.env.KV_REST_API_URL}/set/presence-${id}`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
+      headers,
+      body: JSON.stringify(payload),
     });
 
-    const result = await save.json();
-    return res.status(200).json({ success: true, result });
+    const json = await result.json();
+    return res.status(200).json({ success: true, result: json });
   }
 
-  // GET active users
-  const keysRes = await fetch(`${url}/keys?prefix=presence-`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  if (method === 'GET') {
+    const result = await fetch(`${process.env.KV_REST_API_URL}/keys?prefix=presence-`, {
+      headers
+    });
+    const keys = await result.json();
 
-  const keys = await keysRes.json();
-  const now = Date.now();
-  const fetches = keys.result.map((key) =>
-    fetch(`${url}/get/${key}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => res.json())
-  );
+    const fetches = keys.result.map((key) =>
+      fetch(`${process.env.KV_REST_API_URL}/get/${key}`, { headers }).then((res) => res.json())
+    );
 
-  const values = await Promise.all(fetches);
-  const users = values.map(v => v.result).filter(Boolean);
-  res.status(200).json(users);
+    const data = await Promise.all(fetches);
+    const users = data.map((d) => d.result).filter(Boolean);
+    return res.status(200).json(users);
+  }
+
+  res.status(405).end();
 }
+
+
+
 
